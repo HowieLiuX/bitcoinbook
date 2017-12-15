@@ -2,8 +2,13 @@
 
 from sys import argv
 
-class OutputInfo:
+try:
+    long        # Python 2
+except NameError:
+    long = int  # Python 3
 
+
+class OutputInfo:
     def __init__(self, tx_hash, tx_index, value):
         self.tx_hash = tx_hash
         self.tx_index = tx_index
@@ -12,6 +17,7 @@ class OutputInfo:
     def __repr__(self):
         return "<%s:%s with %s Satoshis>" % (self.tx_hash, self.tx_index,
                                              self.value)
+
 
 # Select optimal outputs for a send from unspent outputs list.
 # Returns output list and remaining change to be sent to
@@ -26,9 +32,9 @@ def select_outputs_greedy(unspent, min_value):
     key_func = lambda utxo: utxo.value
     if greaters:
         # Not-empty. Find the smallest greater.
-        min_greater = min(greaters)
+        min_greater = min(greaters, key=key_func)
         change = min_greater.value - min_value
-        return [min_greater], change
+        return [min_greater], "Change: %d Satoshis" % change
     # Not found in greaters. Try several lessers instead.
     # Rearrange them from biggest to smallest. We want to use the least
     # amount of inputs as possible.
@@ -44,6 +50,7 @@ def select_outputs_greedy(unspent, min_value):
     # No results found.
     return None, 0
 
+
 def main():
     unspent = [
         OutputInfo("ebadfaa92f1fd29e2fe296eda702c48bd11ffd52313e986e99ddad9084062167", 1,  8000000),
@@ -54,15 +61,11 @@ def main():
         OutputInfo("12b6a7934c1df821945ee9ee3b3326d07ca7a65fd6416ea44ce8c3db0c078c64", 0,  10000000),
         OutputInfo("7f42eda67921ee92eae5f79bd37c68c9cb859b899ce70dba68c48338857b7818", 0,  16100000),
     ]
-    
-    if len(argv) > 1: 
-        target = long(argv[1])
-    else:
-        target = 55000000
-        
-    print "For transaction amount %d Satoshis (%f bitcoin) use: " % (target, target/10.0**8)
-    print select_outputs_greedy(unspent, target)
+    target = long(argv[1]) if len(argv) > 1 else 55000000
+    print("For transaction amount %d Satoshis (%f bitcoin) use: " %
+          (target, target / 10.0 ** 8))
+    print(select_outputs_greedy(unspent, target))
+
 
 if __name__ == "__main__":
     main()
-
